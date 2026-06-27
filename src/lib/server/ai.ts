@@ -173,7 +173,6 @@ async function callAgent(
       return parseJson(extractText(start));
     }
 
-    // 2) 완료까지 폴링
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       const pollRes = await fetch(`${base}/${id}`, {
