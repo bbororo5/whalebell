@@ -57,6 +57,14 @@ ${meaning}
 export function generateShortMessage(ctx: SmsParams): string {
   const { coin, transfer, fiatKrw, marketCapPct } = ctx;
   const krw = formatKrwApprox(fiatKrw);
+  const when = formatRelativeTime(transfer.detectedAt);
+  const scalePct = formatMarketCapPct(marketCapPct);
+  const qty = formatTokenLine(transfer.tokenAmount, coin.symbol);
+  const scaleLine =
+    scalePct !== "확인되지 않음"
+      ? `\n\n${coin.name} 전체 가치의 ${scalePct} 규모입니다.`
+      : "";
+
   return `[주의] ${coin.name} 큰손 이동
 
 ${krw} 규모의 ${coin.name}(${coin.symbol})이 거래소로 옮겨졌습니다.
