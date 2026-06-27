@@ -3,6 +3,7 @@ import {
   TRACKED_TOKENS,
   NATIVE_SYMBOL,
   exchangeAddressList,
+  exchangeNameForAddress,
 } from "./exchanges";
 
 /**
@@ -69,13 +70,15 @@ async function transfersToExchange(
     if (!symbol) continue;
     const amount = typeof t.value === "number" ? t.value : 0;
     if (amount <= 0) continue;
+    const exchangeName = exchangeNameForAddress(exchange);
+    const toLabel = exchangeName ? `${exchangeName} 거래소` : "거래소";
     out.push({
       id: `tx_${t.hash}`,
       coinSymbol: symbol,
       tokenAmount: amount,
       direction: "exchange_inflow",
-      fromLabel: "상위권 큰손 계좌",
-      toLabel: "거래소",
+      fromLabel: "많은 양을 보유한 큰손 계좌",
+      toLabel,
       detectedAt: t.metadata?.blockTimestamp ?? new Date().toISOString(),
     });
   }
