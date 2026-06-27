@@ -37,7 +37,7 @@ export async function createIntroAlert(
     coinSymbol: sub.coinSymbol,
     tokenAmount: 0,
     direction: "exchange_inflow",
-    fromLabel: "상위권 큰손 계좌",
+    fromLabel: "많은 양을 보유한 큰손 계좌",
     toLabel: "거래소",
     detectedAt: new Date().toISOString(),
   };
