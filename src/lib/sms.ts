@@ -71,7 +71,7 @@ ${krw}(${qty})이 ${transfer.toLabel}로 옮겨졌습니다(${when}).${scaleLine
 
 ${directionMeaningHint(transfer.direction)}
 
-실제로 팔았다는 뜻은 아닙니다. 바로 사고팔지 말고 추가 움직임을 함께 확인하세요.`;
+바로 사고팔지 말고 추가 움직임을 함께 확인하세요.`;
 }
 
 /** 랜딩 페이지에 보여줄 범용 문자 예시 */
