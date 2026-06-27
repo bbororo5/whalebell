@@ -31,7 +31,7 @@ export async function ingestTransfer(
   );
   if (!gate.pass) return [];
 
-  const { fiatKrw } = await convertToKrw(
+  const { fiatKrw, priceSource } = await convertToKrw(
     transfer.coinSymbol,
     transfer.tokenAmount,
   );
@@ -42,12 +42,13 @@ export async function ingestTransfer(
   if (!coin) return [];
   const impactLevel = computeImpact(transfer, fiatKrw);
 
-  // AI 멘트 생성(에이전트 → 모델 → 템플릿 폴백). 매칭된 구독이 있을 때만 호출.
   const copy = await generateAlertCopy({
     coin,
+    transfer,
     fiatKrw,
-    impactLevel,
-    direction: transfer.direction,
+    priceSource,
+    marketCapPct: gate.marketCapUsd > 0 ? gate.pct : null,
+    impactHint: impactLevel,
   });
 
   const created: WhaleAlert[] = [];
