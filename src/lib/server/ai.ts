@@ -148,13 +148,12 @@ async function callAgent(
   };
 
   try {
-    // 1) background interaction 시작
     const startRes = await fetch(base, {
       method: "POST",
       headers,
       body: JSON.stringify({
         agent: agentId,
-        input: buildInput(input),
+        input: buildAgentPayload(input),
         environment: { type: "remote" },
         background: true,
         store: true,
