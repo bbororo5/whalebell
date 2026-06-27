@@ -29,8 +29,10 @@ export function generateSeniorMessage(ctx: SmsParams): string {
   const meaning = directionMeaningHint(transfer.direction);
   const qty = formatTokenLine(transfer.tokenAmount, coin.symbol);
 
-${coin.name}(${coin.symbol})을 많이 가진 큰손 계좌에서
-큰 금액의 ${coin.name}이 거래소로 옮겨졌습니다.
+  const scaleExtra =
+    scalePct !== "확인되지 않음"
+      ? `\n\n이번 이동은 ${coin.name} 전체 가치의 ${scalePct}에 해당하는 규모로 보입니다.`
+      : "";
 
 현재 시세로 ${krw} 규모입니다.
 
