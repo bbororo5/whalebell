@@ -203,16 +203,8 @@ export async function generateAlertCopy(
   if (agent) return { ...agent, source: "agent" };
 
   return {
-    message: generateSeniorMessage({
-      coin: input.coin,
-      fiatKrw: input.fiatKrw,
-      impactLevel: input.impactLevel,
-    }),
-    shortBody: generateShortMessage({
-      coin: input.coin,
-      fiatKrw: input.fiatKrw,
-      impactLevel: input.impactLevel,
-    }),
+    message: generateSeniorMessage(input),
+    shortBody: generateShortMessage(input),
     source: "template",
   };
 }
