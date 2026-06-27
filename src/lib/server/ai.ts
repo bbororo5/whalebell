@@ -1,29 +1,16 @@
 import { GoogleAuth } from "google-auth-library";
-import type { Coin, ImpactLevel } from "../types";
-import { formatKrwApprox } from "../utils";
+import type { AlertExplainContext } from "../domain/alert-context";
+import { buildAgentPayload } from "../domain/alert-context";
 import { generateSeniorMessage, generateShortMessage } from "../sms";
 
 /**
  * AI Agent 멘트 생성 — Google Agent Platform(I/O 2026) 방식.
  *
- * 흐름: 배포된 커스텀 에이전트(GEMINI_AGENT_ID)를 Interactions API로 호출한다.
- *  - 인증: 서비스 계정(GCP_SA_KEY, JSON) OAuth 토큰
- *  - structured output: response_format(JSON schema) 강제
- *  - 에이전트 호출은 background 필수 → interaction id로 폴링
- *  - 실패/미설정 시 고정 템플릿으로 폴백(서비스는 절대 끊기지 않음)
- *
- * 필요한 환경변수:
- *  - GCP_PROJECT_ID
- *  - GEMINI_AGENT_ID (예: gorebell-whale-writer)
- *  - GCP_SA_KEY (서비스 계정 JSON 전체 문자열)
+ * 시니어 해설 3축(규모·방향·의미)을 위해 이미 fetch된 이동·시세·시총% 컨텍스트를
+ * 에이전트에 JSON으로 넘긴다. 실패 시 풍부한 템플릿 폴백.
  */
 
-export interface AiCopyInput {
-  coin: Pick<Coin, "name" | "symbol">;
-  fiatKrw: number;
-  impactLevel: ImpactLevel;
-  direction: string;
-}
+export type AiCopyInput = AlertExplainContext;
 
 export interface AiCopyResult {
   message: string;
