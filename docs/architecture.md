@@ -7,7 +7,15 @@
 
 본 문서는 **Mock 전용 MVP** 기준이다. 모든 외부 의존(체인 스캔/시세/문자)은 인터페이스로 추상화하고, 키가 없으면 항상 Mock·fallback으로 동작한다(해커톤 안전).
 
-**저장소**: 구독·알림은 **PostgreSQL(Prisma)** 에 영속한다(배포처 무관: Vercel/Neon/장시간 서버 모두 지원). 외부 데이터 소스(전이/시세/발송)만 Mock·fallback이다. 인증번호는 무상태(데모 고정코드).
+**저장소**: 구독·알림은 **PostgreSQL(Prisma)** 에 영속한다(배포처 무관: Vercel/Neon/장시간 서버 모두 지원). 인증번호는 무상태(데모 고정코드).
+
+**휴대폰 번호 보호**: 평문 저장 안 함. `phoneHash`(HMAC-SHA256, 동등 조회용) + `phoneEnc`(AES-256-GCM, 발송·표시용 가역 암호화) 2컬럼으로 저장하고, 클라이언트 응답에서는 `010-****-5678`로 마스킹한다. 키는 `PHONE_ENC_KEY`/`PHONE_HASH_SECRET`.
+
+**외부 연동 현황(실서비스 슬롯)**:
+- **시세**: CoinGecko 실시간(60초 캐시) → 실패 시 코인별 fallback. `/api/prices`로도 노출.
+- **문자 발송**: SOLAPI 실제 발송(HMAC 서명). `SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER` 셋 다 있을 때만 실제 발송, 아니면 `preview_only` 폴백.
+- **온체인 전이 감지**: 아직 mock(`mockWhaleTransfers`). live scan(Alchemy/Etherscan)은 슬롯만 존재.
+- **자동 실행**: Vercel Cron(`/api/cron/detect`, `CRON_SECRET` 보호) + 대시보드 진입 시 1회.
 
 ---
 
