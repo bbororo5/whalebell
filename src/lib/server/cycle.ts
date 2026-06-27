@@ -42,16 +42,16 @@ export async function createIntroAlert(
     detectedAt: new Date().toISOString(),
   };
   const impactLevel = computeImpact(introTransfer, sub.thresholdKrw);
-  const message = generateSeniorMessage({
+  const ctx = {
     coin,
+    transfer: introTransfer,
     fiatKrw: sub.thresholdKrw,
-    impactLevel,
-  });
-  const shortBody = generateShortMessage({
-    coin,
-    fiatKrw: sub.thresholdKrw,
-    impactLevel,
-  });
+    priceSource: "fallback" as const,
+    marketCapPct: null,
+    impactHint: impactLevel,
+  };
+  const message = generateSeniorMessage(ctx);
+  const shortBody = generateShortMessage(ctx);
   const delivery = await dispatch(sub.phone, message);
   const input: AlertInput = {
     subscriptionId: sub.id,
