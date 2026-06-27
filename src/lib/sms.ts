@@ -69,7 +69,7 @@ export function generateShortMessage(ctx: SmsParams): string {
 
 ${krw}(${qty})이 ${transfer.toLabel}로 옮겨졌습니다(${when}).${scaleLine}
 
-가격 흔들림 가능성: ${impactLevel}
+${directionMeaningHint(transfer.direction)}
 
 실제로 팔았다는 뜻은 아닙니다. 바로 사고팔지 말고 추가 움직임을 함께 확인하세요.`;
 }
