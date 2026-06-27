@@ -53,16 +53,9 @@ ${meaning}
 이 알림은 투자 권유가 아닙니다.`;
 }
 
-/**
- * HOME·미리보기용 짧은 본문.
- * 안전 문구는 유지하되, 시니어가 한눈에 보도록 핵심만 줄인다.
- * (UI 원칙: "매도" 대신 "팔다", "위험" 대신 "주의")
- */
-export function generateShortMessage({
-  coin,
-  fiatKrw,
-  impactLevel,
-}: SmsParams): string {
+/** HOME·미리보기용 짧은 본문 — 요약이어도 3축은 유지 */
+export function generateShortMessage(ctx: SmsParams): string {
+  const { coin, transfer, fiatKrw, marketCapPct } = ctx;
   const krw = formatKrwApprox(fiatKrw);
   return `[주의] ${coin.name} 큰손 이동
 
