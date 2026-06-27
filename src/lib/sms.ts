@@ -23,7 +23,11 @@ function formatTokenLine(amount: number, symbol: string): string {
 export function generateSeniorMessage(ctx: SmsParams): string {
   const { coin, transfer, fiatKrw, marketCapPct, impactHint } = ctx;
   const krw = formatKrwApprox(fiatKrw);
-  return `[주의] ${coin.name}(${coin.symbol}) 큰손 이동 알림
+  const when = formatRelativeTime(transfer.detectedAt);
+  const scalePct = formatMarketCapPct(marketCapPct);
+  const dirLabel = directionSeniorLabel(transfer.direction);
+  const meaning = directionMeaningHint(transfer.direction);
+  const qty = formatTokenLine(transfer.tokenAmount, coin.symbol);
 
 ${coin.name}(${coin.symbol})을 많이 가진 큰손 계좌에서
 큰 금액의 ${coin.name}이 거래소로 옮겨졌습니다.
