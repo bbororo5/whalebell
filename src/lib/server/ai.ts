@@ -32,8 +32,8 @@ export interface AiCopyResult {
 }
 
 const LOCATION = "global";
-const POLL_INTERVAL_MS = 2500;
-const MAX_POLLS = 8; // 약 20초
+const POLL_INTERVAL_MS = 3000;
+const MAX_POLLS = 12; // 약 36초 (단일 호출, 서버리스 60초 내)
 
 const RESPONSE_SCHEMA = {
   type: "object",

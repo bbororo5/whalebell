@@ -85,7 +85,9 @@ export async function ingestTransfers(
   transfers: Transfer[],
 ): Promise<{ scanned: number; created: WhaleAlert[] }> {
   const subs = await getActiveSubscriptions();
-  const picked = largestPerCoin(transfers);
+  // 사이클당 1건만 AI 처리(서버리스 60초 제한 보호: AI 호출 1회 ~30초).
+  // 멀티코인은 크론/수동 트리거 반복으로 커버(멱등이라 중복 없음).
+  const picked = largestPerCoin(transfers).slice(0, 1);
   const created: WhaleAlert[] = [];
   for (const t of picked) {
     const c = await ingestTransfer(t, subs);
