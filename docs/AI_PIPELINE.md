@@ -12,7 +12,36 @@
 
 ---
 
-## 1) Gemini "Agent Studio" 에이전트 셋업
+## 실제 적용된 방식 (Agent Platform, I/O 2026)
+
+배포된 **커스텀 에이전트를 ID로 호출**한다 (단순 프롬프트 호출 아님).
+
+- 에이전트 생성(배포): `POST aiplatform.googleapis.com/v1beta1/projects/{P}/locations/global/agents` — `id`, `base_agent`(antigravity), `system_instruction`. (`scripts/agent-config.json` 참고)
+- 호출: `POST .../locations/global/interactions` — `agent` ID + `background:true` + **`response_format`(JSON schema, structured output)** → interaction id로 폴링.
+- 인증: **서비스 계정 OAuth** (API 키 불가). `GCP_SA_KEY_BASE64`.
+- 폴백: 호출 실패/미설정 시 고정 템플릿. 서비스는 끊기지 않음.
+
+환경변수:
+```
+GCP_PROJECT_ID=rapid-agent-hackacthon
+GEMINI_AGENT_ID=gorebell-whale-writer
+GCP_SA_KEY_BASE64=<base64(서비스계정 JSON)>
+```
+
+서비스 계정 만들기:
+```bash
+gcloud iam service-accounts create whalebell-agent --project=PROJECT
+gcloud projects add-iam-policy-binding PROJECT \
+  --member="serviceAccount:whalebell-agent@PROJECT.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.admin" --condition=None
+gcloud iam service-accounts keys create sa-key.json \
+  --iam-account=whalebell-agent@PROJECT.iam.gserviceaccount.com
+base64 < sa-key.json   # → GCP_SA_KEY_BASE64
+```
+
+---
+
+## (참고) AI Studio API 키 방식
 
 고래벨은 **배포된 Managed Agent를 ID로 호출**한다. 두 가지 방법 중 택1.
 

@@ -1,15 +1,21 @@
+import { GoogleAuth } from "google-auth-library";
 import type { Coin, ImpactLevel } from "../types";
 import { formatKrwApprox } from "../utils";
 import { generateSeniorMessage, generateShortMessage } from "../sms";
 
 /**
- * AI Agent 멘트 생성.
- * 우선순위:
- *  1) Gemini Managed Agent (Agent Studio에서 배포한 에이전트) — GEMINI_AGENT_ID + GEMINI_API_KEY
- *  2) Gemini generateContent (구조화 출력) — GEMINI_API_KEY 만 있을 때
- *  3) 고정 템플릿 폴백 — 키가 없거나 실패 시 (절대 끊기지 않음)
+ * AI Agent 멘트 생성 — Google Agent Platform(I/O 2026) 방식.
  *
- * 입력은 "이동 사실"의 구조화 데이터, 출력은 시니어용 문자 본문이다.
+ * 흐름: 배포된 커스텀 에이전트(GEMINI_AGENT_ID)를 Interactions API로 호출한다.
+ *  - 인증: 서비스 계정(GCP_SA_KEY, JSON) OAuth 토큰
+ *  - structured output: response_format(JSON schema) 강제
+ *  - 에이전트 호출은 background 필수 → interaction id로 폴링
+ *  - 실패/미설정 시 고정 템플릿으로 폴백(서비스는 절대 끊기지 않음)
+ *
+ * 필요한 환경변수:
+ *  - GCP_PROJECT_ID
+ *  - GEMINI_AGENT_ID (예: gorebell-whale-writer)
+ *  - GCP_SA_KEY (서비스 계정 JSON 전체 문자열)
  */
 
 export interface AiCopyInput {
@@ -20,14 +26,25 @@ export interface AiCopyInput {
 }
 
 export interface AiCopyResult {
-  message: string; // 전체 문자(LMS)
-  shortBody: string; // HOME/미리보기용 짧은 본문
-  source: "agent" | "model" | "template";
+  message: string;
+  shortBody: string;
+  source: "agent" | "template";
 }
 
-const TIMEOUT_MS = 12_000;
+const LOCATION = "global";
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLLS = 8; // 약 20초
 
-function buildPromptInput(input: AiCopyInput): string {
+const RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    message: { type: "string" },
+    shortBody: { type: "string" },
+  },
+  required: ["message", "shortBody"],
+};
+
+function buildInput(input: AiCopyInput): string {
   return JSON.stringify({
     coinName: input.coin.name,
     symbol: input.coin.symbol,
@@ -37,23 +54,56 @@ function buildPromptInput(input: AiCopyInput): string {
   });
 }
 
-/** 브랜드 규칙(시니어 친화·안전 문구). Agent Studio에도 동일하게 넣는다. */
-export const SYSTEM_INSTRUCTION = `너는 "고래벨"의 알림 문자 작성기다. 큰손 계좌의 코인 이동 사실(JSON)을 받아, 시니어(노년층)도 이해하기 쉬운 한국어 안내 문자를 쓴다.
+let cachedToken: { token: string; exp: number } | null = null;
 
-반드시 지킬 규칙:
-- 투자 권유/매수·매도 추천을 절대 하지 않는다.
-- 어려운 단어 금지(온체인, 트랜잭션, 컨트랙트, 지갑 금지 → "계좌"로). "매도" 대신 "팔다", "위험" 대신 "주의".
-- 큰손을 단정하지 않는다("~일 수 있습니다"). 실제로 팔았다는 뜻이 아님을 명시한다.
-- 놀라서 바로 사고팔지 말라고 안내한다.
-- 마지막에 "이 알림은 투자 권유가 아닙니다."를 넣는다.
-- 과장/공포 조장 금지. 차분하게 알리되 안심시킨다.
+function readSaKey(): string | null {
+  // base64(권장) 또는 평문 JSON 모두 허용
+  const b64 = process.env.GCP_SA_KEY_BASE64;
+  if (b64) {
+    try {
+      return Buffer.from(b64, "base64").toString("utf8");
+    } catch {
+      return null;
+    }
+  }
+  return process.env.GCP_SA_KEY ?? null;
+}
 
-출력은 반드시 아래 JSON 형식만 출력한다(다른 텍스트 금지):
-{"message": "전체 안내 문자(여러 줄)", "shortBody": "3~4줄 요약 문자"}`;
-
-function parseAiJson(text: string): { message: string; shortBody: string } | null {
+async function getAccessToken(): Promise<string | null> {
+  const rawKey = readSaKey();
+  if (!rawKey) return null;
+  if (cachedToken && Date.now() < cachedToken.exp) return cachedToken.token;
   try {
-    // 코드펜스/잡텍스트 안의 첫 JSON 오브젝트만 추출
+    const credentials = JSON.parse(rawKey);
+    const auth = new GoogleAuth({
+      credentials,
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const client = await auth.getClient();
+    const res = await client.getAccessToken();
+    const token = res.token ?? null;
+    if (!token) return null;
+    // 토큰 캐시(50분)
+    cachedToken = { token, exp: Date.now() + 50 * 60_000 };
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+function extractText(data: {
+  outputs?: { text?: string }[];
+  output_text?: string;
+}): string {
+  if (typeof data.output_text === "string") return data.output_text;
+  if (Array.isArray(data.outputs)) {
+    return data.outputs.map((o) => o?.text ?? "").join("");
+  }
+  return "";
+}
+
+function parseJson(text: string): { message: string; shortBody: string } | null {
+  try {
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return null;
     const obj = JSON.parse(match[0]);
@@ -66,76 +116,67 @@ function parseAiJson(text: string): { message: string; shortBody: string } | nul
   }
 }
 
-/** 1) 배포된 Managed Agent 호출 (interactions API) */
-async function callManagedAgent(
+async function callAgent(
   input: AiCopyInput,
 ): Promise<{ message: string; shortBody: string } | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const projectId = process.env.GCP_PROJECT_ID;
   const agentId = process.env.GEMINI_AGENT_ID;
-  if (!apiKey || !agentId) return null;
-  try {
-    const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/interactions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          agent: agentId,
-          input: buildPromptInput(input),
-          environment: "remote",
-        }),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      },
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text: string =
-      data?.output_text ??
-      data?.outputText ??
-      data?.output?.map?.((o: { text?: string }) => o?.text ?? "").join("\n") ??
-      "";
-    return parseAiJson(text);
-  } catch {
-    return null;
-  }
-}
+  if (!projectId || !agentId) return null;
 
-/** 2) generateContent 구조화 출력 호출 */
-async function callGenerateContent(
-  input: AiCopyInput,
-): Promise<{ message: string; shortBody: string } | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
-  const model = process.env.GEMINI_MODEL ?? "gemini-flash-latest";
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  const base = `https://aiplatform.googleapis.com/v1beta1/projects/${projectId}/locations/${LOCATION}/interactions`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-          contents: [{ role: "user", parts: [{ text: buildPromptInput(input) }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                message: { type: "STRING" },
-                shortBody: { type: "STRING" },
-              },
-              required: ["message", "shortBody"],
-            },
-          },
-        }),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      },
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const text: string =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    return parseAiJson(text);
+    // 1) background interaction 시작
+    const startRes = await fetch(base, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        agent: agentId,
+        input: buildInput(input),
+        environment: { type: "remote" },
+        background: true,
+        store: true,
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema: RESPONSE_SCHEMA,
+        },
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!startRes.ok) return null;
+    const start = await startRes.json();
+    const id: string | undefined = start?.id;
+    if (!id) return null;
+    if (start?.status === "completed") {
+      return parseJson(extractText(start));
+    }
+
+    // 2) 완료까지 폴링
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      const pollRes = await fetch(`${base}/${id}`, {
+        method: "GET",
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!pollRes.ok) continue;
+      const poll = await pollRes.json();
+      if (poll?.status === "completed") {
+        return parseJson(extractText(poll));
+      }
+      if (poll?.status === "failed" || poll?.status === "cancelled") {
+        return null;
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -145,11 +186,8 @@ async function callGenerateContent(
 export async function generateAlertCopy(
   input: AiCopyInput,
 ): Promise<AiCopyResult> {
-  const agent = await callManagedAgent(input);
+  const agent = await callAgent(input);
   if (agent) return { ...agent, source: "agent" };
-
-  const model = await callGenerateContent(input);
-  if (model) return { ...model, source: "model" };
 
   return {
     message: generateSeniorMessage({

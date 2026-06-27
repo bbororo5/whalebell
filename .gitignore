@@ -40,6 +40,9 @@ yarn-error.log*
 # neon
 .neon
 
+# secrets (service account keys etc.)
+/scripts/secrets
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
