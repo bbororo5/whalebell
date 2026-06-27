@@ -1,6 +1,6 @@
 import type { Subscription, Transfer, WhaleAlert } from "../types";
 import { getCoin } from "../coins";
-import { convertToKrw } from "../domain/pricing";
+import { convertToKrw, passesMarketCapGate } from "../domain/pricing";
 import { computeImpact } from "../domain/impact";
 import { matchSubscriptions } from "../domain/matching";
 import { dispatch } from "../domain/dispatch";
@@ -22,6 +22,15 @@ export async function ingestTransfer(
   activeSubs?: Subscription[],
 ): Promise<WhaleAlert[]> {
   const subs = activeSubs ?? (await getActiveSubscriptions());
+
+  // 시총 % 게이트: 이동 규모가 코인 시총의 최소 N%(기본 5%) 이상일 때만 알림.
+  // 문자 폭주 방지. 시총 미확인이면 통과.
+  const gate = await passesMarketCapGate(
+    transfer.coinSymbol,
+    transfer.tokenAmount,
+  );
+  if (!gate.pass) return [];
+
   const { fiatKrw } = await convertToKrw(
     transfer.coinSymbol,
     transfer.tokenAmount,
