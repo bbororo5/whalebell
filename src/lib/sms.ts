@@ -86,3 +86,25 @@ export const SAMPLE_SMS = `[주의] 선택한 코인 큰손 이동 알림
 
 놀라서 바로 사고팔지 마세요.
 이 알림은 투자 권유가 아닙니다.`;
+
+/** setup/preview 등 간단 호출용(풀 컨텍스트 없을 때) */
+export function generateSeniorMessageSimple(p: {
+  coin: SmsParams["coin"];
+  fiatKrw: number;
+  impactLevel: SmsParams["impactHint"];
+}): string {
+  return generateSeniorMessage({
+    coin: p.coin,
+    transfer: {
+      tokenAmount: 0,
+      direction: "exchange_inflow",
+      fromLabel: "많은 양을 보유한 큰손 계좌",
+      toLabel: "거래소",
+      detectedAt: new Date().toISOString(),
+    },
+    fiatKrw: p.fiatKrw,
+    priceSource: "fallback",
+    marketCapPct: null,
+    impactHint: p.impactLevel,
+  });
+}
