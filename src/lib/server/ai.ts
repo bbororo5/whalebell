@@ -99,7 +99,6 @@ async function getAccessToken(): Promise<string | null> {
     const res = await client.getAccessToken();
     const token = res.token ?? null;
     if (!token) return null;
-    // 토큰 캐시(50분)
     cachedToken = { token, exp: Date.now() + 50 * 60_000 };
     return token;
   } catch {
