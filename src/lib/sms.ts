@@ -67,7 +67,7 @@ export function generateShortMessage(ctx: SmsParams): string {
 
   return `[주의] ${coin.name} 큰손 이동
 
-${krw} 규모의 ${coin.name}(${coin.symbol})이 거래소로 옮겨졌습니다.
+${krw}(${qty})이 ${transfer.toLabel}로 옮겨졌습니다(${when}).${scaleLine}
 
 가격 흔들림 가능성: ${impactLevel}
 
