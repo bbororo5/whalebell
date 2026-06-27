@@ -20,11 +20,8 @@ function formatTokenLine(amount: number, symbol: string): string {
  * 큰손 이동 알림 문자 생성(템플릿 폴백).
  * 시니어 해설 3축: 규모 → 방향 → 의미.
  */
-export function generateSeniorMessage({
-  coin,
-  fiatKrw,
-  impactLevel,
-}: SmsParams): string {
+export function generateSeniorMessage(ctx: SmsParams): string {
+  const { coin, transfer, fiatKrw, marketCapPct, impactHint } = ctx;
   const krw = formatKrwApprox(fiatKrw);
   return `[주의] ${coin.name}(${coin.symbol}) 큰손 이동 알림
 
