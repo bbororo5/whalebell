@@ -1,15 +1,24 @@
-import type { Coin, ImpactLevel } from "./types";
-import { formatKrwApprox } from "./utils";
+import type { AlertExplainContext } from "./domain/alert-context";
+import {
+  directionMeaningHint,
+  directionSeniorLabel,
+  formatMarketCapPct,
+} from "./domain/alert-context";
+import { formatKrwApprox, formatRelativeTime } from "./utils";
 
-export interface SmsParams {
-  coin: Pick<Coin, "name" | "symbol">;
-  fiatKrw: number;
-  impactLevel: ImpactLevel;
+export type SmsParams = AlertExplainContext;
+
+function formatTokenLine(amount: number, symbol: string): string {
+  const qty =
+    amount >= 1
+      ? `${Math.round(amount * 100) / 100}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      : String(amount);
+  return `${qty} ${symbol}`;
 }
 
 /**
- * 큰손 이동 알림 문자 생성의 단일 진입점.
- * 선택한 코인명·심볼·원화 규모·흔들림 가능성이 동적으로 들어간다.
+ * 큰손 이동 알림 문자 생성(템플릿 폴백).
+ * 시니어 해설 3축: 규모 → 방향 → 의미.
  */
 export function generateSeniorMessage({
   coin,
