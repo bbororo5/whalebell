@@ -40,7 +40,8 @@ ${when}, ${transfer.fromLabel}에서
 ${coin.name} ${qty}(현재 시세로 ${krw})이
 ${transfer.toLabel}로 옮겨졌습니다.${scaleExtra}
 
-이번 이동은 가격 흔들림 가능성이 "${impactLevel}"으로 보입니다.
+이동 방향: ${dirLabel}
+${meaning}
 
 이유는 다음과 같습니다.
 
