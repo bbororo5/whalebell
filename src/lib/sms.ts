@@ -34,7 +34,7 @@ export function generateSeniorMessage(ctx: SmsParams): string {
       ? `\n\n이번 이동은 ${coin.name} 전체 가치의 ${scalePct}에 해당하는 규모로 보입니다.`
       : "";
 
-현재 시세로 ${krw} 규모입니다.
+  return `[주의] ${coin.name}(${coin.symbol}) 큰손 이동 알림
 
 이 계좌는 ${coin.name}을 많이 보유한 상위권 큰손 계좌로 분류됩니다.
 다만 실제 주인이 누구인지는 확인되지 않았습니다.
