@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCoin } from "@/lib/coins";
 import { getThreshold } from "@/lib/thresholds";
-import { generateSeniorMessage } from "@/lib/sms";
+import { generateSeniorMessageSimple } from "@/lib/sms";
 import { useSetupStore } from "@/lib/store";
 import type { ImpactLevel } from "@/lib/types";
 
@@ -34,7 +34,7 @@ export default function PreviewPage() {
     if (!coin || !threshold) return "";
     const impactLevel: ImpactLevel =
       threshold.id === "basic" ? "보통" : "높음";
-    return generateSeniorMessage({
+    return generateSeniorMessageSimple({
       coin,
       fiatKrw: threshold.krw,
       impactLevel,
