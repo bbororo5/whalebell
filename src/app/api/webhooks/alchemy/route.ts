@@ -8,6 +8,8 @@ import {
 } from "@/lib/domain/exchanges";
 import { ingestTransfer } from "@/lib/server/ingest";
 
+export const maxDuration = 60;
+
 /**
  * Alchemy "Address Activity" 웹훅 수신.
  * 실제 온체인 이동이 발생하면 Alchemy가 이 엔드포인트로 푸시한다.

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { runDetectionCycle } from "@/lib/server/cycle";
 
+export const maxDuration = 60;
+
 /**
  * Vercel Cron 진입점. 주기적으로 루프 B(감지→발송)를 실행한다.
  * Vercel Cron은 GET 요청에 `Authorization: Bearer <CRON_SECRET>`를 붙인다.

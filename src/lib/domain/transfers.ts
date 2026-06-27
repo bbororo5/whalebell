@@ -44,7 +44,14 @@ export function mockWhaleTransfers(): Transfer[] {
   ];
 }
 
-/** 확장 슬롯: live scan이 있으면 사용하고 실패 시 mock으로 fallback. */
-export function getWhaleTransfers(): Transfer[] {
+import { fetchRecentWhaleTransfers } from "./alchemy";
+
+/**
+ * 감지 소스. Alchemy 실데이터(거래소 입금) 우선, 실패/미설정 시 mock으로 fallback.
+ * ALCHEMY_API_KEY 가 있으면 실제 온체인 이동을 가져온다.
+ */
+export async function getWhaleTransfers(): Promise<Transfer[]> {
+  const live = await fetchRecentWhaleTransfers();
+  if (live && live.length > 0) return live;
   return mockWhaleTransfers();
 }

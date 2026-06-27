@@ -65,13 +65,29 @@ export async function ingestTransfer(
   return created;
 }
 
-/** 여러 이동을 순차 처리(활성 구독 1회만 조회). */
+/** 코인별로 가장 큰(수량) 이동 1건만 남긴다. 문자 스팸 방지 + AI 호출 수 제한. */
+function largestPerCoin(transfers: Transfer[]): Transfer[] {
+  const best = new Map<string, Transfer>();
+  for (const t of transfers) {
+    const key = t.coinSymbol.toUpperCase();
+    const cur = best.get(key);
+    if (!cur || t.tokenAmount > cur.tokenAmount) best.set(key, t);
+  }
+  return [...best.values()];
+}
+
+/**
+ * 여러 이동을 처리(활성 구독 1회만 조회).
+ * 한 사이클에서 코인당 1건(최대 이동)만 처리해 발송 폭주와 AI 호출 누적을 막는다.
+ * 서버리스 함수 시간 제한을 고려한 설계.
+ */
 export async function ingestTransfers(
   transfers: Transfer[],
 ): Promise<{ scanned: number; created: WhaleAlert[] }> {
   const subs = await getActiveSubscriptions();
+  const picked = largestPerCoin(transfers);
   const created: WhaleAlert[] = [];
-  for (const t of transfers) {
+  for (const t of picked) {
     const c = await ingestTransfer(t, subs);
     created.push(...c);
   }

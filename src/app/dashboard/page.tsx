@@ -42,8 +42,7 @@ export default function HomePage() {
   const load = useCallback(async (p: string) => {
     setLoading(true);
     try {
-      // HOME 진입 시 루프 B를 1회 돌려 항상 최신 상태로 보이게 한다(멱등).
-      await fetch("/api/detect", { method: "POST" }).catch(() => {});
+      // 감지(루프 B)는 cron/수동 트리거가 담당한다. HOME은 결과만 빠르게 보여준다.
       const [subRes, alertRes] = await Promise.all([
         fetch(`/api/subscriptions?phone=${encodeURIComponent(p)}`),
         fetch(`/api/alerts?phone=${encodeURIComponent(p)}`),
@@ -67,6 +66,18 @@ export default function HomePage() {
       setLoading(false);
     }
   }, []);
+
+  const [detecting, setDetecting] = useState(false);
+  async function runDetect() {
+    if (!phone || detecting) return;
+    setDetecting(true);
+    try {
+      await fetch("/api/detect", { method: "POST" }).catch(() => {});
+      await load(phone);
+    } finally {
+      setDetecting(false);
+    }
+  }
 
   useEffect(() => {
     // 저장된 번호가 확인되면 그 번호의 알림/구독을 불러온다.
@@ -114,6 +125,19 @@ export default function HomePage() {
           마지막 확인: {checkedAt ? formatRelativeTime(checkedAt) : "확인 중…"}
         </p>
       </header>
+
+      {activeSubs.length > 0 && (
+        <Button
+          variant="outline"
+          block
+          size="md"
+          className="mt-2"
+          disabled={detecting}
+          onClick={runDetect}
+        >
+          {detecting ? "지금 큰손 이동을 확인하는 중…" : "지금 큰손 이동 확인하기"}
+        </Button>
+      )}
 
       {activeSubs.length === 0 ? (
         <Card className="mt-6 text-center">

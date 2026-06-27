@@ -43,6 +43,11 @@ export function isExchangeAddress(address: string): boolean {
   return EXCHANGE_ADDRESSES.has(address.toLowerCase());
 }
 
+/** 모니터링 대상 거래소 입금 주소 목록 */
+export function exchangeAddressList(): string[] {
+  return [...EXCHANGE_ADDRESSES];
+}
+
 export type Direction =
   | "exchange_inflow"
   | "exchange_outflow"

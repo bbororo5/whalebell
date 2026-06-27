@@ -16,7 +16,7 @@ export async function runDetectionCycle(): Promise<{
   scanned: number;
   created: WhaleAlert[];
 }> {
-  return ingestTransfers(getWhaleTransfers());
+  return ingestTransfers(await getWhaleTransfers());
 }
 
 /**

@@ -5,6 +5,8 @@ import { getCurrentPriceKrw } from "@/lib/domain/pricing";
 import { ingestTransfer } from "@/lib/server/ingest";
 import { clientAlert } from "@/lib/server/serialize";
 
+export const maxDuration = 60;
+
 /**
  * 해커톤용 모의 트리거.
  * 가짜 이동 1건을 만들어 실제와 동일한 파이프라인(환산→AI멘트→매칭→발송→적재)에 흘려보낸다.
