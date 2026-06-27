@@ -36,8 +36,9 @@ export function generateSeniorMessage(ctx: SmsParams): string {
 
   return `[주의] ${coin.name}(${coin.symbol}) 큰손 이동 알림
 
-이 계좌는 ${coin.name}을 많이 보유한 상위권 큰손 계좌로 분류됩니다.
-다만 실제 주인이 누구인지는 확인되지 않았습니다.
+${when}, ${transfer.fromLabel}에서
+${coin.name} ${qty}(현재 시세로 ${krw})이
+${transfer.toLabel}로 옮겨졌습니다.${scaleExtra}
 
 이번 이동은 가격 흔들림 가능성이 "${impactLevel}"으로 보입니다.
 
