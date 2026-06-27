@@ -37,6 +37,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [checkedAt, setCheckedAt] = useState<string | null>(null);
   const [detailCoin, setDetailCoin] = useState<string | null>(null);
+  const [priceMap, setPriceMap] = useState<Record<string, number>>({});
 
   const load = useCallback(async (p: string) => {
     setLoading(true);
@@ -49,9 +50,19 @@ export default function HomePage() {
       ]);
       const subData = await subRes.json();
       const alertData = await alertRes.json();
-      setSubs(subData.subscriptions ?? []);
+      const loadedSubs: Subscription[] = subData.subscriptions ?? [];
+      setSubs(loadedSubs);
       setAlerts(alertData.alerts ?? []);
       setCheckedAt(new Date().toISOString());
+
+      // 실시간 시세(CoinGecko, 실패 시 fallback) 조회
+      const symbols = [...new Set(loadedSubs.map((s) => s.coinSymbol))];
+      if (symbols.length > 0) {
+        fetch(`/api/prices?symbols=${symbols.join(",")}`)
+          .then((r) => r.json())
+          .then((d) => setPriceMap(d.prices ?? {}))
+          .catch(() => {});
+      }
     } finally {
       setLoading(false);
     }
@@ -72,7 +83,10 @@ export default function HomePage() {
   const today = useMemo(() => todayAlerts(real), [real]);
   const status = useMemo(() => homeStatus(today), [today]);
   const biggest = useMemo(() => biggestTransfer(today), [today]);
-  const cards = useMemo(() => coinCards(activeSubs, real), [activeSubs, real]);
+  const cards = useMemo(
+    () => coinCards(activeSubs, real, priceMap),
+    [activeSubs, real, priceMap],
+  );
   const recent = useMemo(() => {
     const base = detailCoin
       ? today.filter((a) => a.coinSymbol === detailCoin)

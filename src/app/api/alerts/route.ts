@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAlertsByPhone } from "@/lib/server/store";
+import { clientAlert } from "@/lib/server/serialize";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,5 +12,5 @@ export async function GET(request: Request) {
     );
   }
   const alerts = await getAlertsByPhone(phone);
-  return NextResponse.json({ ok: true, alerts });
+  return NextResponse.json({ ok: true, alerts: alerts.map(clientAlert) });
 }

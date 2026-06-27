@@ -1,21 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": [
-    "icn1"
-  ],
-  "services": {
-    "whalebell": {
-      "root": ".",
-      "framework": "nextjs"
-    }
-  },
-  "rewrites": [
+  "regions": ["icn1"],
+  "crons": [
     {
-      "source": "/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "whalebell"
-      }
+      "path": "/api/cron/detect",
+      "schedule": "0 0 * * *"
     }
   ]
 }

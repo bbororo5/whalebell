@@ -6,23 +6,27 @@ import type {
   WhaleAlert,
 } from "../types";
 import { prisma } from "./db";
+import {
+  decryptPhone,
+  encryptPhone,
+  hashPhone,
+  normalizePhone,
+} from "./crypto";
 
 /**
  * Postgres(Prisma) 영속 저장소.
- * 도메인 순수 함수(src/lib/domain/*)와 분리된, 비동기 CRUD 계층.
+ * 휴대폰 번호는 phoneHash(조회) + phoneEnc(암호문)로 저장하고,
+ * 읽을 때 복호화해 도메인 객체의 plaintext `phone`으로 돌려준다(내부 발송용).
+ * 클라이언트 응답에서는 API 라우트가 maskPhone으로 가린다.
  */
 
 const DEMO_CODE = "123456";
 
-export function normalizePhone(phone: string): string {
-  return phone.replace(/[^0-9]/g, "");
-}
+export { normalizePhone };
 
 /* ── 인증 (데모: 무상태 고정 코드) ─────────────────── */
 
 export function createVerification(): string {
-  // 서버리스 다중 인스턴스에서도 안전하도록 무상태로 처리.
-  // 실서비스에서는 Redis/TTL 테이블로 교체.
   return DEMO_CODE;
 }
 
@@ -34,7 +38,7 @@ export function confirmVerification(_phone: string, code: string): boolean {
 
 type SubRow = {
   id: string;
-  phone: string;
+  phoneEnc: string;
   coinSymbol: string;
   thresholdId: string;
   thresholdKrw: number;
@@ -46,7 +50,7 @@ type AlertRow = {
   id: string;
   subscriptionId: string;
   transferId: string;
-  phone: string;
+  phoneEnc: string;
   coinSymbol: string;
   fiatKrw: number;
   tokenAmount: number;
@@ -62,7 +66,7 @@ type AlertRow = {
 function toSub(row: SubRow): Subscription {
   return {
     id: row.id,
-    phone: row.phone,
+    phone: decryptPhone(row.phoneEnc),
     coinSymbol: row.coinSymbol,
     thresholdId: row.thresholdId as Subscription["thresholdId"],
     thresholdKrw: row.thresholdKrw,
@@ -76,7 +80,7 @@ function toAlert(row: AlertRow): WhaleAlert {
     id: row.id,
     subscriptionId: row.subscriptionId,
     transferId: row.transferId,
-    phone: row.phone,
+    phone: decryptPhone(row.phoneEnc),
     coinSymbol: row.coinSymbol,
     fiatKrw: row.fiatKrw,
     tokenAmount: row.tokenAmount,
@@ -98,11 +102,11 @@ export async function createOrUpdateSubscription(input: {
   thresholdId: Subscription["thresholdId"];
   thresholdKrw: number;
 }): Promise<{ subscription: Subscription; created: boolean }> {
-  const phone = normalizePhone(input.phone);
+  const phoneHash = hashPhone(input.phone);
   const coinSymbol = input.coinSymbol.toUpperCase();
 
   const existing = await prisma.subscription.findUnique({
-    where: { phone_coinSymbol: { phone, coinSymbol } },
+    where: { phoneHash_coinSymbol: { phoneHash, coinSymbol } },
   });
 
   if (existing) {
@@ -119,7 +123,8 @@ export async function createOrUpdateSubscription(input: {
 
   const created = await prisma.subscription.create({
     data: {
-      phone,
+      phoneHash,
+      phoneEnc: encryptPhone(input.phone),
       coinSymbol,
       thresholdId: input.thresholdId,
       thresholdKrw: input.thresholdKrw,
@@ -133,7 +138,7 @@ export async function getSubscriptionsByPhone(
   phone: string,
 ): Promise<Subscription[]> {
   const rows = await prisma.subscription.findMany({
-    where: { phone: normalizePhone(phone) },
+    where: { phoneHash: hashPhone(phone) },
     orderBy: { createdAt: "asc" },
   });
   return rows.map(toSub);
@@ -179,7 +184,8 @@ export async function insertAlert(input: AlertInput): Promise<WhaleAlert | null>
       data: {
         subscriptionId: input.subscriptionId,
         transferId: input.transferId,
-        phone: input.phone,
+        phoneHash: hashPhone(input.phone),
+        phoneEnc: encryptPhone(input.phone),
         coinSymbol: input.coinSymbol,
         fiatKrw: input.fiatKrw,
         tokenAmount: input.tokenAmount,
@@ -193,14 +199,13 @@ export async function insertAlert(input: AlertInput): Promise<WhaleAlert | null>
     });
     return toAlert(row);
   } catch {
-    // 멱등키 충돌(이미 존재) 등은 무시
     return null;
   }
 }
 
 export async function getAlertsByPhone(phone: string): Promise<WhaleAlert[]> {
   const rows = await prisma.alert.findMany({
-    where: { phone: normalizePhone(phone) },
+    where: { phoneHash: hashPhone(phone) },
     orderBy: { createdAt: "desc" },
   });
   return rows.map(toAlert);

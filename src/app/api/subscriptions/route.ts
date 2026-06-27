@@ -6,6 +6,7 @@ import {
   getSubscriptionsByPhone,
 } from "@/lib/server/store";
 import { createIntroAlert } from "@/lib/server/cycle";
+import { clientSubscription } from "@/lib/server/serialize";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +18,10 @@ export async function GET(request: Request) {
     );
   }
   const subscriptions = await getSubscriptionsByPhone(phone);
-  return NextResponse.json({ ok: true, subscriptions });
+  return NextResponse.json({
+    ok: true,
+    subscriptions: subscriptions.map(clientSubscription),
+  });
 }
 
 export async function POST(request: Request) {
@@ -58,7 +62,7 @@ export async function POST(request: Request) {
   await createIntroAlert(subscription);
 
   return NextResponse.json(
-    { ok: true, subscription, created },
+    { ok: true, subscription: clientSubscription(subscription), created },
     { status: created ? 201 : 200 },
   );
 }

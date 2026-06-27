@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getThreshold } from "@/lib/thresholds";
 import { updateSubscription } from "@/lib/server/store";
+import { clientSubscription } from "@/lib/server/serialize";
 
 export async function PATCH(
   request: Request,
@@ -36,5 +37,8 @@ export async function PATCH(
       { status: 404 },
     );
   }
-  return NextResponse.json({ ok: true, subscription: updated });
+  return NextResponse.json({
+    ok: true,
+    subscription: clientSubscription(updated),
+  });
 }

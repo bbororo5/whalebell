@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runDetectionCycle } from "@/lib/server/cycle";
+import { clientAlert } from "@/lib/server/serialize";
 
 /**
  * 루프 B(큰손 이동 감지 → 문자 발송)를 1회 실행한다.
@@ -12,6 +13,6 @@ export async function POST() {
     ok: true,
     scanned: result.scanned,
     createdCount: result.created.length,
-    created: result.created,
+    created: result.created.map(clientAlert),
   });
 }

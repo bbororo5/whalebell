@@ -13,17 +13,17 @@ import {
   type AlertInput,
 } from "./store";
 
-function buildAlertInput(
+async function buildAlertInput(
   transfer: Transfer,
   sub: Subscription,
   fiatKrw: number,
-): AlertInput | null {
+): Promise<AlertInput | null> {
   const coin = getCoin(sub.coinSymbol);
   if (!coin) return null;
   const impactLevel = computeImpact(transfer, fiatKrw);
   const message = generateSeniorMessage({ coin, fiatKrw, impactLevel });
   const shortBody = generateShortMessage({ coin, fiatKrw, impactLevel });
-  const delivery = dispatch(sub.phone, message);
+  const delivery = await dispatch(sub.phone, message);
   return {
     subscriptionId: sub.id,
     transferId: transfer.id,
@@ -54,11 +54,14 @@ export async function runDetectionCycle(): Promise<{
   const created: WhaleAlert[] = [];
 
   for (const transfer of transfers) {
-    const { fiatKrw } = convertToKrw(transfer.coinSymbol, transfer.tokenAmount);
+    const { fiatKrw } = await convertToKrw(
+      transfer.coinSymbol,
+      transfer.tokenAmount,
+    );
     const matched = matchSubscriptions(transfer, fiatKrw, subs);
     for (const sub of matched) {
       if (await hasAlert(transfer.id, sub.id)) continue;
-      const input = buildAlertInput(transfer, sub, fiatKrw);
+      const input = await buildAlertInput(transfer, sub, fiatKrw);
       if (!input) continue;
       const alert = await insertAlert(input);
       if (alert) created.push(alert);
@@ -86,7 +89,7 @@ export async function createIntroAlert(
     toLabel: "거래소",
     detectedAt: new Date().toISOString(),
   };
-  const input = buildAlertInput(introTransfer, sub, sub.thresholdKrw);
+  const input = await buildAlertInput(introTransfer, sub, sub.thresholdKrw);
   if (!input) return null;
   return insertAlert(input);
 }

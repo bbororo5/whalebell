@@ -1,6 +1,6 @@
 import type { ImpactLevel, Subscription, WhaleAlert } from "./types";
 import { getCoin } from "./coins";
-import { getCurrentPriceKrw } from "./domain/pricing";
+import { FALLBACK_PRICES_USD, FX_RATE } from "./domain/pricing";
 
 /** HOME 계산에 쓰는 보조값들. 모두 순수 함수(클라이언트에서 사용 가능). */
 
@@ -92,9 +92,15 @@ export interface CoinCardData {
 }
 
 /** 구독 코인별 카드 데이터(현재가·기준·오늘 알림 수·최고 흔들림 가능성) */
+/** 시세 맵이 없을 때 쓰는 fallback 원화 시세 */
+function fallbackPriceKrw(symbol: string): number {
+  return (FALLBACK_PRICES_USD[symbol.toUpperCase()] ?? 0) * FX_RATE;
+}
+
 export function coinCards(
   subs: Subscription[],
   alerts: WhaleAlert[],
+  priceMap: Record<string, number> = {},
   now = new Date(),
 ): CoinCardData[] {
   const today = todayAlerts(alerts, now);
@@ -109,10 +115,11 @@ export function coinCards(
         ? a.impactLevel
         : top;
     }, null);
+    const sym = sub.coinSymbol.toUpperCase();
     return {
       coinSymbol: sub.coinSymbol,
       coinName: coin?.name ?? sub.coinSymbol,
-      priceKrw: getCurrentPriceKrw(sub.coinSymbol),
+      priceKrw: priceMap[sym] ?? fallbackPriceKrw(sym),
       thresholdKrw: sub.thresholdKrw,
       todayCount: coinAlerts.length,
       topImpact,

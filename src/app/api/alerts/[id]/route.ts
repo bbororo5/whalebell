@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAlertById } from "@/lib/server/store";
+import { clientAlert } from "@/lib/server/serialize";
 
 export async function GET(
   _request: Request,
@@ -13,5 +14,5 @@ export async function GET(
       { status: 404 },
     );
   }
-  return NextResponse.json({ ok: true, alert });
+  return NextResponse.json({ ok: true, alert: clientAlert(alert) });
 }

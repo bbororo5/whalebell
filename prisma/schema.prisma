@@ -9,9 +9,11 @@ datasource db {
 }
 
 /// A의 산출물 / B의 필터. 1코인 1구독.
+/// 휴대폰 번호는 평문 저장하지 않는다: phoneHash(조회용 HMAC) + phoneEnc(AES-GCM 암호문).
 model Subscription {
   id           String   @id @default(cuid())
-  phone        String
+  phoneHash    String
+  phoneEnc     String
   coinSymbol   String
   thresholdId  String
   thresholdKrw Float
@@ -19,8 +21,8 @@ model Subscription {
   createdAt    DateTime @default(now())
   alerts       Alert[]
 
-  @@unique([phone, coinSymbol])
-  @@index([phone])
+  @@unique([phoneHash, coinSymbol])
+  @@index([phoneHash])
 }
 
 /// B의 산출물. (transferId, subscriptionId)로 멱등.
@@ -29,7 +31,8 @@ model Alert {
   subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   subscriptionId String
   transferId     String
-  phone          String
+  phoneHash      String
+  phoneEnc       String
   coinSymbol     String
   fiatKrw        Float
   tokenAmount    Float
@@ -42,5 +45,5 @@ model Alert {
   createdAt      DateTime     @default(now())
 
   @@unique([transferId, subscriptionId])
-  @@index([phone])
+  @@index([phoneHash])
 }

@@ -33,10 +33,10 @@ export default function CompletePage() {
     router.push("/setup/coin");
   }
 
-  function goDashboard() {
+  function goMyAlerts() {
     sessionStorage.setItem("whalebell-phone", phone);
     reset();
-    router.push("/dashboard");
+    router.push("/manage");
   }
 
   return (
@@ -75,7 +75,7 @@ export default function CompletePage() {
       </Card>
 
       <div className="mt-8 flex flex-col gap-3">
-        <Button block onClick={goDashboard}>
+        <Button block onClick={goMyAlerts}>
           내 알림 확인하기
         </Button>
         <Button variant="secondary" block onClick={addAnother}>
