@@ -17,27 +17,31 @@ export const TRACKED_TOKENS: Record<string, string> = {
 export const NATIVE_SYMBOL = "ETH";
 
 /** 주요 거래소 핫월렛/입금 주소 (소문자). 일부 대표 주소만 큐레이션. */
-const EXCHANGE_ADDRESSES = new Set<string>(
-  [
-    // Binance
-    "0x28c6c06298d514db089934071355e5743bf21d60",
-    "0x21a31ee1afc51d94c2efccaa2092ad1028285549",
-    "0xdfd5293d8e347dfe59e90efd55b2956a1343963d",
-    "0x56eddb7aa87536c09ccc2793473599fd21a8b17f",
-    // Coinbase
-    "0x71660c4005ba85c37ccec55d0c4493e66fe775d3",
-    "0x503828976d22510aad0201ac7ec88293211d23da",
-    "0xddfabcdc4d8ffc6d5beaf154f18b778f892a0740",
-    // Upbit
-    "0x390de26d772d2e2005c6d1d24afc902bae37a4bb",
-    // Bithumb
-    "0x88d34944cf554e9cccf4a24292d891f620e9c94f",
-    // OKX
-    "0x6cc5f688a315f3dc28a7781717a9a798a59fda7b",
-    // Kraken
-    "0x2910543af39aba0cd09dbb2d50200b3e800a63d2",
-  ].map((a) => a.toLowerCase()),
+const EXCHANGE_ADDRESS_ENTRIES: [string, string][] = [
+  // Binance
+  ["0x28c6c06298d514db089934071355e5743bf21d60", "바이낸스"],
+  ["0x21a31ee1afc51d94c2efccaa2092ad1028285549", "바이낸스"],
+  ["0xdfd5293d8e347dfe59e90efd55b2956a1343963d", "바이낸스"],
+  ["0x56eddb7aa87536c09ccc2793473599fd21a8b17f", "바이낸스"],
+  // Coinbase
+  ["0x71660c4005ba85c37ccec55d0c4493e66fe775d3", "코인베이스"],
+  ["0x503828976d22510aad0201ac7ec88293211d23da", "코인베이스"],
+  ["0xddfabcdc4d8ffc6d5beaf154f18b778f892a0740", "코인베이스"],
+  // Upbit
+  ["0x390de26d772d2e2005c6d1d24afc902bae37a4bb", "업비트"],
+  // Bithumb
+  ["0x88d34944cf554e9cccf4a24292d891f620e9c94f", "빗썸"],
+  // OKX
+  ["0x6cc5f688a315f3dc28a7781717a9a798a59fda7b", "OKX"],
+  // Kraken
+  ["0x2910543af39aba0cd09dbb2d50200b3e800a63d2", "크라켄"],
+];
+
+const EXCHANGE_BY_ADDRESS = new Map<string, string>(
+  EXCHANGE_ADDRESS_ENTRIES.map(([addr, name]) => [addr.toLowerCase(), name]),
 );
+
+const EXCHANGE_ADDRESSES = new Set<string>(EXCHANGE_BY_ADDRESS.keys());
 
 export function isExchangeAddress(address: string): boolean {
   return EXCHANGE_ADDRESSES.has(address.toLowerCase());
