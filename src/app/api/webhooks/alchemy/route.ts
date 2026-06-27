@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { Transfer } from "@/lib/types";
 import {
   classifyDirection,
+  exchangeNameForAddress,
   NATIVE_SYMBOL,
   symbolForContract,
 } from "@/lib/domain/exchanges";
@@ -90,14 +91,21 @@ function parseAlchemyActivity(payload: AlchemyWebhook): Transfer[] {
 
     const direction = classifyDirection(from, to);
     const txHash = a.hash ?? a.log?.transactionHash ?? `${now}_${i}`;
+    const exchangeName = exchangeNameForAddress(to);
+    const toLabel =
+      direction === "exchange_inflow"
+        ? exchangeName
+          ? `${exchangeName} 거래소`
+          : "거래소"
+        : "다른 계좌";
 
     out.push({
       id: `tx_${txHash}_${i}`,
       coinSymbol: symbol,
       tokenAmount,
       direction,
-      fromLabel: "상위권 큰손 계좌",
-      toLabel: direction === "exchange_inflow" ? "거래소" : "다른 계좌",
+      fromLabel: "많은 양을 보유한 큰손 계좌",
+      toLabel,
       detectedAt: now,
     });
   });
