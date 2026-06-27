@@ -1,0 +1,46 @@
+// 고래벨 데이터 모델 (Postgres). 배포처 무관(Vercel/Neon/장시간 서버 모두 지원).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A의 산출물 / B의 필터. 1코인 1구독.
+model Subscription {
+  id           String   @id @default(cuid())
+  phone        String
+  coinSymbol   String
+  thresholdId  String
+  thresholdKrw Float
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  alerts       Alert[]
+
+  @@unique([phone, coinSymbol])
+  @@index([phone])
+}
+
+/// B의 산출물. (transferId, subscriptionId)로 멱등.
+model Alert {
+  id             String       @id @default(cuid())
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String
+  transferId     String
+  phone          String
+  coinSymbol     String
+  fiatKrw        Float
+  tokenAmount    Float
+  direction      String
+  impactLevel    String
+  message        String
+  shortBody      String
+  delivery       String
+  detectedAt     DateTime
+  createdAt      DateTime     @default(now())
+
+  @@unique([transferId, subscriptionId])
+  @@index([phone])
+}
