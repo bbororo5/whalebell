@@ -47,6 +47,11 @@ export function isExchangeAddress(address: string): boolean {
   return EXCHANGE_ADDRESSES.has(address.toLowerCase());
 }
 
+/** 거래소 입금 주소 → 한글 거래소명 (없으면 undefined) */
+export function exchangeNameForAddress(address: string): string | undefined {
+  return EXCHANGE_BY_ADDRESS.get(address.toLowerCase());
+}
+
 /** 모니터링 대상 거래소 입금 주소 목록 */
 export function exchangeAddressList(): string[] {
   return [...EXCHANGE_ADDRESSES];
